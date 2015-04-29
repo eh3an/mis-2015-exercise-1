@@ -2,24 +2,43 @@ package mmbuw.com.brokenproject;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.os.AsyncTask;
 import android.os.Bundle;
+import android.text.Html;
+import android.text.method.ScrollingMovementMethod;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
+import android.widget.EditText;
+import android.widget.RadioButton;
+import android.widget.TextView;
+import android.widget.Toast;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.StatusLine;
+import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.conn.ConnectTimeoutException;
 import org.apache.http.impl.client.DefaultHttpClient;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-
-import mmbuw.com.brokenproject.R;
+import java.io.UnsupportedEncodingException;
+import java.net.ConnectException;
+import java.net.MalformedURLException;
+import java.net.SocketTimeoutException;
 
 public class AnotherBrokenActivity extends Activity {
+
+    private EditText url;
+    private TextView txtView;
+    private WebView wbvw;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -30,6 +49,10 @@ public class AnotherBrokenActivity extends Activity {
         String message = intent.getStringExtra(BrokenActivity.EXTRA_MESSAGE);
         //What happens here? What is this? It feels like this is wrong.
         //Maybe the weird programmer who wrote this forgot to do something?
+
+        url=(EditText)findViewById(R.id.edtxtUrl);
+        txtView=(TextView)findViewById(R.id.txtvwContext);
+        wbvw=(WebView)findViewById(R.id.wbvw);
 
     }
 
@@ -63,25 +86,90 @@ public class AnotherBrokenActivity extends Activity {
         //Below, you find a staring point for your HTTP Requests - this code is in the wrong place and lacks the allowance to do what it wants
         //It will crash if you just un-comment it.
 
-        /*
-        Beginning of helper code for HTTP Request.
+        new fetchContent().execute(url.getText().toString());
 
-        HttpClient client = new DefaultHttpClient();
-        HttpResponse response = client.execute(new HttpGet("http://lmgtfy.com/?q=android+ansync+task"));
-        StatusLine status = response.getStatusLine();
-        if (status.getStatusCode() == HttpStatus.SC_OK){
-            ByteArrayOutputStream outStream = new ByteArrayOutputStream();
-            response.getEntity().writeTo(outStream);
-            String responseAsString = outStream.toString();
-             System.out.println("Response string: "+responseAsString);
-        }else {
-            //Well, this didn't work.
-            response.getEntity().getContent().close();
-            throw new IOException(status.getReasonPhrase());
+
+
+
+    }
+
+
+    private class fetchContent extends AsyncTask<String, Void, String> {
+        private String responseAsString;
+        @Override
+
+        //We have to do this process in background
+        protected String doInBackground(String... params) {
+            HttpClient client = new DefaultHttpClient();
+            HttpResponse response ;
+            try {
+                response = client.execute(new HttpGet(url.getText().toString())); //Set url = user input
+                StatusLine status = response.getStatusLine();
+                if (status.getStatusCode() == HttpStatus.SC_OK) {
+                    ByteArrayOutputStream outStream = new ByteArrayOutputStream();
+                    response.getEntity().writeTo(outStream);
+                    responseAsString = outStream.toString();
+                    System.out.println("Response string: " + responseAsString);
+                }
+                else{
+                    response.getEntity().getContent().close();
+                    throw new IOException(status.getReasonPhrase());
+                }
+            }
+            //exception handling
+            //gathered different exception titles from various topics of stackoverflow.com
+            catch (ConnectTimeoutException e) {
+                Toast.makeText(getApplicationContext(), "Error: ConnectTimeoutException", Toast.LENGTH_LONG).show();
+            }catch (MalformedURLException e){
+                Toast.makeText(getApplicationContext(), "URL: Malformed URL", Toast.LENGTH_LONG).show();
+            }
+            catch (UnsupportedEncodingException e) {
+                Toast.makeText(getApplicationContext(), "Error: UnsupportedEncodingException", Toast.LENGTH_LONG).show();
+            } catch (ClientProtocolException e) {
+                Toast.makeText(getApplicationContext(), "Error: ClientProtocolException", Toast.LENGTH_LONG).show();
+            } catch (SocketTimeoutException e) {
+                Toast.makeText(getApplicationContext(), "Error: SocketTimeoutException", Toast.LENGTH_LONG).show();
+            }catch (ConnectException e) {
+                Toast.makeText(getApplicationContext(), "Error: ConnectException", Toast.LENGTH_LONG).show();
+            } catch (IOException e) {
+                Toast.makeText(getApplicationContext(), "Error: IOException", Toast.LENGTH_LONG).show();
+            }
+
+            return null;
+        }
+        //This method will be executed after doInBackground
+        @Override
+        protected void onPostExecute(String result) {
+            RadioButton radioText=(RadioButton)findViewById(R.id.radioText);
+            RadioButton radioWeb=(RadioButton)findViewById(R.id.radioWeb);
+            try{
+                //check if the user want to show context in a textView or webView
+                if (radioText.isChecked()){
+                    wbvw.setVisibility(View.INVISIBLE);
+                    txtView.setVisibility(View.VISIBLE);
+                    txtView.setMovementMethod(new ScrollingMovementMethod());
+                    txtView.setText(Html.fromHtml(responseAsString));
+                }
+                else if(radioWeb.isChecked()){
+                    txtView.setVisibility(View.INVISIBLE);
+                    wbvw.setVisibility(View.VISIBLE);
+                    wbvw.setWebViewClient(new WebViewClient());
+                    wbvw.loadUrl(url.getText().toString());
+                }
+
+            }
+            catch (Exception e){
+                Toast.makeText(getApplicationContext(), "No content", Toast.LENGTH_LONG).show();
+            }
+
         }
 
-          End of helper code!
+        @Override
+        protected void onPreExecute() {
+        }
 
-                  */
+        @Override
+        protected void onProgressUpdate(Void... values) {
+        }
     }
 }

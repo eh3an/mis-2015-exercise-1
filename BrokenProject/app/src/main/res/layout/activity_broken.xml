@@ -23,6 +23,6 @@
            android:layout_centerHorizontal="true"
            android:text="My darling, please don't cry!"
            android:onClick="brokenFunction"
-        />
+           android:id="@+id/button" />
 
 </RelativeLayout>
